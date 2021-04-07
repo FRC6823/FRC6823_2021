@@ -1,5 +1,6 @@
 package frc.robot.subsystems;
 
+import edu.wpi.first.wpilibj.controller.PIDController;
 //import edu.wpi.first.wpilibj.Preferences;
 import edu.wpi.first.wpilibj.smartdashboard.SendableRegistry;
 //import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -25,6 +26,15 @@ public class SwerveDriveSubsystem extends SubsystemBase {
     private SwerveWheelModuleSubsystem frontRight;
     private SwerveWheelModuleSubsystem frontLeft;
 
+    private PIDController angleController;
+    private double fieldangle = 0;
+
+    public void setFieldAngle(double fieldangle) {
+        this.fieldangle = fieldangle;
+        angleController.setSetpoint(this.fieldangle);
+
+    }
+
     public SwerveDriveSubsystem() {
         backRight = new SwerveWheelModuleSubsystem(7, 6, 3, -4.70);// These are the motors and encoder ports for swerve
                                                                    // drive,
@@ -40,6 +50,10 @@ public class SwerveDriveSubsystem extends SubsystemBase {
 
         SendableRegistry.addLW(this, "Swerve Drive Subsystem");
 
+        angleController = new PIDController(.7, 0, 0);
+        angleController.enableContinuousInput(0, Math.PI * 2);
+        angleController.setSetpoint(0 - Math.PI / 2);
+
     }
 
     public void drive(double x1, double y1, double x2) {
@@ -53,43 +67,112 @@ public class SwerveDriveSubsystem extends SubsystemBase {
         double backLeftAngle;
         double frontRightAngle;
         double frontLeftAngle;
-        if (x1 == 0 && y1 == 0 && x2 == 0) {
+        // if (x1 == 0 && y1 == 0 && x2 == 0) {
 
-            backRightSpeed = 0;//
-            backLeftSpeed = 0;
-            frontRightSpeed = 0;
-            frontLeftSpeed = 0;//
+        // backRightSpeed = 0;//
+        // backLeftSpeed = 0;
+        // frontRightSpeed = 0;
+        // frontLeftSpeed = 0;//
 
-            backRightAngle = 0;
-            backLeftAngle = 0;
-            frontRightAngle = 0;
-            frontLeftAngle = 0;
+        // // backRightAngle = 0;
+        // // backLeftAngle = 0;
+        // // frontRightAngle = 0;
+        // // frontLeftAngle = 0;
 
-        } else {
-            // x1, y1 are from the position of the joystick, x2 is from the rotation
+        // } else {
+        // x1, y1 are from the position of the joystick, x2 is from the rotation
 
-            // y1 *= -1;
-            // x1 *= -1;
+        // y1 *= -1;
+        // x1 *= -1;
 
-            double a = x1 - x2 * (L / r);
-            double b = x1 + x2 * (L / r);
-            double c = y1 - x2 * (W / r);
-            double d = y1 + x2 * (W / r);
+        double a = x1 - x2 * (L / r);
+        double b = x1 + x2 * (L / r);
+        double c = y1 - x2 * (W / r);
+        double d = y1 + x2 * (W / r);
 
-            backRightSpeed = Math.sqrt((b * b) + (c * c));//
-            backLeftSpeed = Math.sqrt((a * a) + (c * c));
-            frontRightSpeed = Math.sqrt((b * b) + (d * d));
-            frontLeftSpeed = Math.sqrt((a * a) + (d * d));//
+        backRightSpeed = Math.sqrt((b * b) + (c * c));//
+        backLeftSpeed = Math.sqrt((a * a) + (c * c));
+        frontRightSpeed = Math.sqrt((b * b) + (d * d));
+        frontLeftSpeed = Math.sqrt((a * a) + (d * d));//
 
-            backRightAngle = Math.atan2(b, c) / Math.PI;
-            backLeftAngle = Math.atan2(a, c) / Math.PI;
-            frontRightAngle = Math.atan2(b, d) / Math.PI;
-            frontLeftAngle = Math.atan2(a, d) / Math.PI;
-        }
+        backRightAngle = Math.atan2(b, c) / Math.PI;
+        backLeftAngle = Math.atan2(a, c) / Math.PI;
+        frontRightAngle = Math.atan2(b, d) / Math.PI;
+        frontLeftAngle = Math.atan2(a, d) / Math.PI;
+        // }
         backRight.drive(backRightSpeed, backRightAngle);
         backLeft.drive(backLeftSpeed, backLeftAngle);
         frontRight.drive(frontRightSpeed, frontRightAngle);
         frontLeft.drive(frontLeftSpeed, frontLeftAngle);
+
+    }
+
+    public void weirdDrive(double x1, double y1, double x2, double robotAngle) {
+        double rotateCommand = angleController.calculate(robotAngle);
+        if (rotateCommand > 0.5) {
+            rotateCommand = 0.5;
+        } else if (rotateCommand < -0.5) {
+            rotateCommand = -0.5;
+        }
+
+        double r = Math.sqrt((L * L) + (W * W));
+        double backRightSpeed;//
+        double backLeftSpeed;
+        double frontRightSpeed;
+        double frontLeftSpeed;//
+
+        double backRightAngle;
+        double backLeftAngle;
+        double frontRightAngle;
+        double frontLeftAngle;
+        // if (x1 == 0 && y1 == 0 && x2 == 0) {
+
+        // backRightSpeed = 0;//
+        // backLeftSpeed = 0;
+        // frontRightSpeed = 0;
+        // frontLeftSpeed = 0;//
+
+        // // backRightAngle = 0;
+        // // backLeftAngle = 0;
+        // // frontRightAngle = 0;
+        // // frontLeftAngle = 0;
+
+        // } else {
+        // x1, y1 are from the position of the joystick, x2 is from the rotation
+
+        // y1 *= -1;
+        // x1 *= -1;
+
+        // x2 = rotateCommand + x2;
+        x2 = rotateCommand;
+
+        double a = x1 - x2 * (L / r);
+        double b = x1 + x2 * (L / r);
+        double c = y1 - x2 * (W / r);
+        double d = y1 + x2 * (W / r);
+
+        backRightSpeed = Math.sqrt((b * b) + (c * c));//
+        backLeftSpeed = Math.sqrt((a * a) + (c * c));
+        frontRightSpeed = Math.sqrt((b * b) + (d * d));
+        frontLeftSpeed = Math.sqrt((a * a) + (d * d));//
+
+        backRightAngle = Math.atan2(b, c) / Math.PI;
+        backLeftAngle = Math.atan2(a, c) / Math.PI;
+        frontRightAngle = Math.atan2(b, d) / Math.PI;
+        frontLeftAngle = Math.atan2(a, d) / Math.PI;
+        // }
+        backRight.drive(backRightSpeed, backRightAngle);
+        backLeft.drive(backLeftSpeed, backLeftAngle);
+        frontRight.drive(frontRightSpeed, frontRightAngle);
+        frontLeft.drive(frontLeftSpeed, frontLeftAngle);
+
+    }
+
+    public void stopMomentum() {
+        backRight.drive(0, Math.PI / 2.0);
+        backLeft.drive(0, Math.PI);
+        frontRight.drive(0, 3 * Math.PI / 2.0);
+        frontLeft.drive(0, Math.PI * 2.0);
     }
 
     @Override

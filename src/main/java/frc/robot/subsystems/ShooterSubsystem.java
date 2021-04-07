@@ -9,7 +9,7 @@ import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.Encoder;
 //import edu.wpi.first.wpilibj.Preferences;
 import edu.wpi.first.wpilibj.Servo;
-//import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.controller.PIDController;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -23,7 +23,7 @@ public class ShooterSubsystem extends SubsystemBase {
     private boolean manualControl, intakeUp;
     private Encoder encoder;
     private PIDController speedController;
-    //private Timer timer;
+    private Timer timer;
     private int count;
 
     public ShooterSubsystem() {
@@ -39,7 +39,7 @@ public class ShooterSubsystem extends SubsystemBase {
         encoder = new Encoder(8, 9, false, Encoder.EncodingType.k1X);
         encoder.setDistancePerPulse(1);
         speedController = new PIDController(Robot.PREFS.getDouble("rpmk", .0001), 0, 0);
-
+        timer = new Timer();
     }
 
     public void startShooterSpin() {
@@ -85,7 +85,7 @@ public class ShooterSubsystem extends SubsystemBase {
         // }
         speedController.setSetpoint(rpm);
         double out = speedController.calculate(encoder.getRate() * 60 / 1024);
-        // out = out > 0 ? out : 0;
+        out = out > 0 ? out : 0;
         leftShoot.set(out);
         rightShoot.set(out);
         SmartDashboard.putNumber("RPM", encoder.getRate() * 60 / 1024);
@@ -112,7 +112,8 @@ public class ShooterSubsystem extends SubsystemBase {
         // }
         speedController.setSetpoint(rpm);
         double out = speedController.calculate(encoder.getRate() * 60 / 1024);
-        out = out > -0.05 ? out : -0.05;
+        out = out > 0.00 ? out : 0.00;
+
         leftShoot.set(out);
         rightShoot.set(out);
         SmartDashboard.putNumber("RPM", encoder.getRate() * 60 / 1024);
@@ -122,6 +123,20 @@ public class ShooterSubsystem extends SubsystemBase {
             conveyor.set(conveyorPower * -1);
             manualControl = true;
         }
+    }
+
+    public void shooterPower(double power, int ticks, double conveyorPower) {
+
+        leftShoot.set(power);
+        rightShoot.set(power);
+
+        SmartDashboard.putNumber("RPM", encoder.getRate() * 60 / 1024);
+        count++;
+        if (count > ticks) {
+            conveyor.set(conveyorPower * -1);
+            manualControl = true;
+        }
+
     }
 
     public void startConveyorSpin() {
@@ -163,11 +178,20 @@ public class ShooterSubsystem extends SubsystemBase {
         return (!bottomSensor.get() || !secondSensor.get());
     }
 
+    public boolean ballAtTop() {
+        return (!topSensor.get());
+    }
+
     @Override
     public void periodic() {
         // get returns true when nothing is there
         if (doesSenseBall() && !manualControl && topSensor.get()) {
             conveyor.set(Robot.PREFS.getDouble("ConveyorSpeed", 0) * -1);
+            timer.start();
+            while (!timer.hasElapsed(0.1)) {
+            }
+            timer.stop();
+            timer.reset();
         } else if (!manualControl) {
             conveyor.set(0);
         }
